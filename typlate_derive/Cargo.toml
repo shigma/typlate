@@ -2,6 +2,11 @@
 name = "typlate_derive"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Shigma <shigma10826@gmail.com>"]
+description = "Derive macros for typlate."
+repository = "https://github.com/shigma/typlate"
+documentation = "https://docs.rs/typlate_derive"
 
 [lib]
 proc-macro = true

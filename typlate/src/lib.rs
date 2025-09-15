@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -6,9 +8,15 @@ use serde::{Deserialize, Deserializer, Serialize, de};
 #[cfg(feature = "derive")]
 pub use typlate_derive::TemplateParams;
 
+/// A trait for types that can provide template parameters.
+///
+/// This trait is typically implemented using the `#[derive(TemplateParams)]` macro.
+/// It provides the field names and values that can be used in templates.
 pub trait TemplateParams {
+    /// Array of field names available for use in templates.
     const FIELDS: &'static [&'static str];
 
+    /// Get the string representation of a field by its index.
     fn get_field(&self, index: usize) -> String;
 }
 
@@ -18,6 +26,29 @@ enum TemplateElement {
     Var(usize),
 }
 
+/// A type-safe template string that can be formatted with values of type `T`.
+///
+/// Template strings contain placeholders in the form `{field_name}` that correspond
+/// to fields in type `T`. The template is validated at parse time to ensure all
+/// placeholders are valid.
+///
+/// ## Examples
+///
+/// ```
+/// # use typlate::{TemplateParams, TemplateString};
+/// #[derive(TemplateParams)]
+/// struct Person {
+///     name: String,
+///     title: String,
+/// }
+///
+/// let template: TemplateString<Person> = "Dear {title} {name}".parse().unwrap();
+/// let person = Person {
+///     name: "Smith".to_string(),
+///     title: "Dr.".to_string(),
+/// };
+/// assert_eq!(template.format(&person), "Dear Dr. Smith");
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemplateString<T> {
     elements: Vec<TemplateElement>,
@@ -25,6 +56,22 @@ pub struct TemplateString<T> {
 }
 
 impl<T: TemplateParams> TemplateString<T> {
+    /// Format the template with the provided parameter values.
+    ///
+    /// ## Examples
+    ///
+    /// ```
+    /// # use typlate::{TemplateParams, TemplateString};
+    /// #[derive(TemplateParams)]
+    /// struct Data {
+    ///     x: i32,
+    ///     y: i32,
+    /// }
+    ///
+    /// let template: TemplateString<Data> = "Point: ({x}, {y})".parse().unwrap();
+    /// let data = Data { x: 10, y: 20 };
+    /// assert_eq!(template.format(&data), "Point: (10, 20)");
+    /// ```
     pub fn format(&self, params: &T) -> String {
         let mut result = String::new();
 
