@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typlate::{TemplateParams, TemplateString};
 
 #[derive(TemplateParams)]
@@ -7,15 +7,14 @@ struct Foo {
     qux: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Messages {
     foo: TemplateString<Foo>,
 }
 
 #[test]
 fn test_basic_formatting() {
-    let template = TemplateString::<Foo>::parse("Hello {bar}, welcome {qux}!").unwrap();
-
+    let template: TemplateString<Foo> = "Hello {bar}, welcome {qux}!".parse().unwrap();
     let params = Foo {
         bar: 42,
         qux: "world".to_string(),
@@ -26,8 +25,7 @@ fn test_basic_formatting() {
 
 #[test]
 fn test_escaped_brackets() {
-    let template = TemplateString::<Foo>::parse("{{bar}} is {bar}, {{{{qux}}}} is {{{qux}}}").unwrap();
-
+    let template: TemplateString<Foo> = "{{bar}} is {bar}, {{{{qux}}}} is {{{qux}}}".parse().unwrap();
     let params = Foo {
         bar: 42,
         qux: "test".to_string(),
@@ -37,19 +35,19 @@ fn test_escaped_brackets() {
 }
 
 #[test]
-fn test_deserialization() {
+fn test_serde() {
     let json = r#"{
         "foo": "Value is {bar}"
     }"#;
 
     let messages: Messages = serde_json::from_str(json).unwrap();
-
     let params = Foo {
         bar: 100,
         qux: "Alice".to_string(),
     };
 
     assert_eq!(messages.foo.format(&params), "Value is 100");
+    assert_eq!(serde_json::to_string(&messages).unwrap(), r#"{"foo":"Value is {bar}"}"#);
 }
 
 #[test]

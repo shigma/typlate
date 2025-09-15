@@ -1,20 +1,21 @@
 use std::fmt;
 use std::marker::PhantomData;
+use std::str::FromStr;
 
-use serde::de::{self, Deserialize, Deserializer, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, de};
 #[cfg(feature = "derive")]
 pub use typlate_derive::TemplateParams;
 
 pub trait TemplateParams {
     const FIELDS: &'static [&'static str];
 
-    fn get_field(&self, index: usize) -> Option<String>;
+    fn get_field(&self, index: usize) -> String;
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum TemplateElement {
     Text(String),
-    Var(usize, &'static str),
+    Var(usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,12 +25,29 @@ pub struct TemplateString<T> {
 }
 
 impl<T: TemplateParams> TemplateString<T> {
-    pub fn parse(template: &str) -> Result<Self, String> {
+    pub fn format(&self, params: &T) -> String {
+        let mut result = String::new();
+
+        for element in &self.elements {
+            match element {
+                TemplateElement::Text(text) => result.push_str(text),
+                TemplateElement::Var(index) => result.push_str(&params.get_field(*index)),
+            }
+        }
+
+        result
+    }
+}
+
+impl<T: TemplateParams> FromStr for TemplateString<T> {
+    type Err = String;
+
+    fn from_str(template: &str) -> Result<Self, Self::Err> {
         let mut elements = vec![];
         let mut chars = template.chars().peekable();
         let mut text = String::new();
 
-        while let Some(char) = chars.next() {
+        'outer: while let Some(char) = chars.next() {
             match char {
                 '{' => {
                     if chars.peek() == Some(&'{') {
@@ -43,26 +61,20 @@ impl<T: TemplateParams> TemplateString<T> {
                         text.clear();
                     }
 
-                    let mut field_name = String::new();
-                    let mut is_closed = false;
-
-                    while let Some(char) = chars.next() {
+                    let mut name = String::new();
+                    for char in chars.by_ref() {
                         if char == '}' {
-                            is_closed = true;
-                            break;
+                            let index = T::FIELDS
+                                .iter()
+                                .position(|&f| f == name)
+                                .ok_or_else(|| format!("Unknown field name: {}", name))?;
+                            elements.push(TemplateElement::Var(index));
+                            continue 'outer;
                         } else {
-                            field_name.push(char);
+                            name.push(char);
                         }
                     }
-                    if !is_closed {
-                        return Err("Unclosed bracket in template".to_string());
-                    }
-
-                    let index = T::FIELDS
-                        .iter()
-                        .position(|&f| f == field_name)
-                        .ok_or_else(|| format!("Unknown field name: {}", field_name))?;
-                    elements.push(TemplateElement::Var(index, T::FIELDS[index]));
+                    return Err("Unclosed bracket in template".to_string());
                 }
                 '}' => {
                     if chars.peek() == Some(&'}') {
@@ -84,21 +96,34 @@ impl<T: TemplateParams> TemplateString<T> {
             _phantom: PhantomData,
         })
     }
+}
 
-    pub fn format(&self, params: &T) -> String {
-        let mut result = String::new();
-
+impl<T: TemplateParams> fmt::Display for TemplateString<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for element in &self.elements {
             match element {
-                TemplateElement::Text(text) => result.push_str(text),
-                TemplateElement::Var(index, _) => match params.get_field(*index) {
-                    Some(value) => result.push_str(&value),
-                    None => result.push_str(format!("{{{}}}", T::FIELDS[*index]).as_str()),
-                },
+                TemplateElement::Text(text) => {
+                    for char in text.chars() {
+                        match char {
+                            '{' => write!(f, "{{{{")?,
+                            '}' => write!(f, "}}}}")?,
+                            _ => write!(f, "{}", char)?,
+                        }
+                    }
+                }
+                TemplateElement::Var(index) => write!(f, "{{{}}}", T::FIELDS[*index])?,
             }
         }
+        Ok(())
+    }
+}
 
-        result
+impl<T: TemplateParams> Serialize for TemplateString<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -111,7 +136,7 @@ impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
             _phantom: PhantomData<T>,
         }
 
-        impl<'de, T: TemplateParams> Visitor<'de> for TemplateStringVisitor<T> {
+        impl<'de, T: TemplateParams> de::Visitor<'de> for TemplateStringVisitor<T> {
             type Value = TemplateString<T>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -122,7 +147,7 @@ impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
             where
                 E: de::Error,
             {
-                TemplateString::parse(value).map_err(de::Error::custom)
+                TemplateString::from_str(value).map_err(de::Error::custom)
             }
         }
 

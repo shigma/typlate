@@ -30,17 +30,17 @@ pub fn derive_template_params(input: TokenStream) -> TokenStream {
         .map(|field| LitStr::new(&field.to_string(), Span::call_site().into()));
 
     let field_matches = fields.iter().enumerate().map(|(index, field)| {
-        quote! { #index => Some(self.#field.to_string()), }
+        quote! { #index => self.#field.to_string(), }
     });
 
     quote! {
         impl TemplateParams for #ident {
             const FIELDS: &'static [&'static str] = &[#(#field_names),*];
 
-            fn get_field(&self, index: usize) -> Option<String> {
+            fn get_field(&self, index: usize) -> String {
                 match index {
                     #(#field_matches)*
-                    _ => None,
+                    _ => panic!("Index out of bounds"),
                 }
             }
         }
