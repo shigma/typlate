@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "typlate",
+    "typlate_derive",
+]
+resolver = "3"
