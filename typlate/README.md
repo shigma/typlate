@@ -11,7 +11,7 @@ Add to your `Cargo.toml`:
  
 ```toml
 [dependencies]
-typlate = { version = "0.1", features = ["derive"] }
+typlate = { version = "0.2", features = ["derive", "serde"] }
 ```
 
 ## Quick Start
