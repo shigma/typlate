@@ -4,8 +4,6 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, de};
 #[cfg(feature = "derive")]
 pub use typlate_derive::TemplateParams;
 
@@ -52,7 +50,7 @@ enum TemplateElement {
 /// ```
 pub struct TemplateString<T> {
     elements: Vec<TemplateElement>,
-    _phantom: PhantomData<T>,
+    phantom: PhantomData<T>,
 }
 
 impl<T: TemplateParams> TemplateString<T> {
@@ -140,7 +138,7 @@ impl<T: TemplateParams> FromStr for TemplateString<T> {
         }
         Ok(Self {
             elements,
-            _phantom: PhantomData,
+            phantom: PhantomData,
         })
     }
 }
@@ -150,7 +148,7 @@ impl<T> Clone for TemplateString<T> {
     fn clone(&self) -> Self {
         Self {
             elements: self.elements.clone(),
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 }
@@ -192,40 +190,36 @@ impl<T: TemplateParams> fmt::Display for TemplateString<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<T: TemplateParams> Serialize for TemplateString<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
+mod serde_impl {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+    use super::*;
+
+    impl<T: TemplateParams> Serialize for TemplateString<T> {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            serializer.serialize_str(&self.to_string())
+        }
     }
-}
 
-#[cfg(feature = "serde")]
-impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct TemplateStringVisitor<T> {
-            _phantom: PhantomData<T>,
+    impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
+        fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            deserializer.deserialize_str(TemplateStringVisitor { phantom: PhantomData })
+        }
+    }
+
+    struct TemplateStringVisitor<T> {
+        phantom: PhantomData<T>,
+    }
+
+    impl<'de, T: TemplateParams> de::Visitor<'de> for TemplateStringVisitor<T> {
+        type Value = TemplateString<T>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a template string")
         }
 
-        impl<'de, T: TemplateParams> de::Visitor<'de> for TemplateStringVisitor<T> {
-            type Value = TemplateString<T>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a template string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                TemplateString::from_str(value).map_err(de::Error::custom)
-            }
+        fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+            value.parse().map_err(de::Error::custom)
         }
-
-        deserializer.deserialize_str(TemplateStringVisitor { _phantom: PhantomData })
     }
 }
