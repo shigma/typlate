@@ -50,7 +50,6 @@ enum TemplateElement {
 /// };
 /// assert_eq!(template.format(&person), "Dear Dr. Smith");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
 pub struct TemplateString<T> {
     elements: Vec<TemplateElement>,
     _phantom: PhantomData<T>,
@@ -143,6 +142,32 @@ impl<T: TemplateParams> FromStr for TemplateString<T> {
             elements,
             _phantom: PhantomData,
         })
+    }
+}
+
+// do not require T: Clone for Clone
+impl<T> Clone for TemplateString<T> {
+    fn clone(&self) -> Self {
+        Self {
+            elements: self.elements.clone(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+// do not require T: Debug for Debug
+impl<T> fmt::Debug for TemplateString<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("TemplateString")
+            .field("elements", &self.elements)
+            .finish()
+    }
+}
+
+// do not require T: PartialEq for PartialEq
+impl<T> PartialEq for TemplateString<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.elements == other.elements
     }
 }
 
