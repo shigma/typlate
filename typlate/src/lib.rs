@@ -4,6 +4,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, de};
 #[cfg(feature = "derive")]
 pub use typlate_derive::TemplateParams;
@@ -165,6 +166,7 @@ impl<T: TemplateParams> fmt::Display for TemplateString<T> {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<T: TemplateParams> Serialize for TemplateString<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -174,6 +176,7 @@ impl<T: TemplateParams> Serialize for TemplateString<T> {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
