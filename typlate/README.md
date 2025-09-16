@@ -1,5 +1,5 @@
 # typlate
- 
+
 [![Crates.io](https://img.shields.io/crates/v/typlate.svg)](https://crates.io/crates/typlate)
 [![Documentation](https://docs.rs/typlate/badge.svg)](https://docs.rs/typlate)
  
@@ -11,7 +11,7 @@ Add to your `Cargo.toml`:
  
 ```toml
 [dependencies]
-typlate = { version = "0.2", features = ["derive", "serde"] }
+typlate = { version = "0.2", features = ["full"] }
 ```
 
 ## Quick Start
@@ -48,7 +48,7 @@ fn main() {
 
 ## Serde Support
 
-Templates can be serialized and deserialized using serde:
+With the `serde` feature enabled, templates can be serialized and deserialized using [serde](https://serde.rs/):
 
 ```rs
 use typlate::{TemplateParams, TemplateString};

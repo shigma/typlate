@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::str::FromStr;
 
@@ -19,7 +20,7 @@ pub trait TemplateParams {
     fn get_field(&self, index: usize) -> String;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum TemplateElement {
     Text(String),
     Var(usize),
@@ -143,7 +144,6 @@ impl<T: TemplateParams> FromStr for TemplateString<T> {
     }
 }
 
-// do not require T: Clone for Clone
 impl<T> Clone for TemplateString<T> {
     fn clone(&self) -> Self {
         Self {
@@ -153,19 +153,37 @@ impl<T> Clone for TemplateString<T> {
     }
 }
 
-// do not require T: Debug for Debug
+impl<T> PartialEq for TemplateString<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.elements == other.elements
+    }
+}
+
+impl<T> Eq for TemplateString<T> {}
+
+impl<T> PartialOrd for TemplateString<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for TemplateString<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.elements.cmp(&other.elements)
+    }
+}
+
+impl<T> Hash for TemplateString<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.elements.hash(state);
+    }
+}
+
 impl<T> fmt::Debug for TemplateString<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TemplateString")
             .field("elements", &self.elements)
             .finish()
-    }
-}
-
-// do not require T: PartialEq for PartialEq
-impl<T> PartialEq for TemplateString<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.elements == other.elements
     }
 }
 
