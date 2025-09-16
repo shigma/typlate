@@ -9,6 +9,7 @@ use syn::{Data, DeriveInput, Fields, LitStr, Member, parse_macro_input};
 pub fn derive_template_params(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let ident = &input.ident;
+    let generics = &input.generics;
 
     let mut ident_names = vec![];
     let mut match_arms = vec![];
@@ -35,7 +36,7 @@ pub fn derive_template_params(input: TokenStream) -> TokenStream {
     }
 
     quote! {
-        impl TemplateParams for #ident {
+        impl #generics TemplateParams for #ident #generics {
             const FIELDS: &'static [&'static str] = &[#(#ident_names),*];
 
             fn get_field(&self, index: usize) -> String {
