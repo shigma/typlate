@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use typlate::{TemplateParams, TemplateString};
+use typlate::{Template, TemplateParams};
 
 #[derive(TemplateParams)]
 struct Foo<'i> {
@@ -9,12 +9,12 @@ struct Foo<'i> {
 
 #[derive(Deserialize, Serialize)]
 struct Messages {
-    foo: TemplateString<Foo<'static>>,
+    foo: Template<Foo<'static>>,
 }
 
 #[test]
 fn test_basic_formatting() {
-    let template: TemplateString<Foo> = "Hello {bar}, welcome {qux}!".parse().unwrap();
+    let template: Template<Foo> = "Hello {bar}, welcome {qux}!".parse().unwrap();
     let params = Foo { bar: 42, qux: "world" };
 
     assert_eq!(template.format(&params), "Hello 42, welcome world!");
@@ -22,7 +22,7 @@ fn test_basic_formatting() {
 
 #[test]
 fn test_escaped_brackets() {
-    let template: TemplateString<Foo> = "{{bar}} is {bar}, {{{{qux}}}} is {{{qux}}}".parse().unwrap();
+    let template: Template<Foo> = "{{bar}} is {bar}, {{{{qux}}}} is {{{qux}}}".parse().unwrap();
     let params = Foo { bar: 42, qux: "test" };
 
     assert_eq!(template.format(&params), "{bar} is 42, {{qux}} is {test}");

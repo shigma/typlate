@@ -36,7 +36,7 @@ pub fn derive_template_params(input: TokenStream) -> TokenStream {
     }
 
     quote! {
-        impl #generics TemplateParams for #ident #generics {
+        impl #generics ::typlate::TemplateStringParams for #ident #generics {
             const FIELDS: &'static [&'static str] = &[#(#ident_names),*];
 
             fn fmt_field(&self, f: &mut ::std::fmt::Formatter, index: usize) -> ::std::fmt::Result {
