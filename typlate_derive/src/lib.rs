@@ -20,14 +20,14 @@ pub fn derive_template_params(input: TokenStream) -> TokenStream {
                 for (index, field) in fields.named.iter().enumerate() {
                     let ident = field.ident.as_ref().unwrap();
                     ident_names.push(LitStr::new(&ident.to_string(), field.span()));
-                    match_arms.push(quote! { #index => self.#ident.to_string(), });
+                    match_arms.push(quote! { #index => ::std::fmt::Display::fmt(&self.#ident, f), });
                 }
             }
             Fields::Unnamed(fields) => {
                 for (index, field) in fields.unnamed.iter().enumerate() {
                     let member = Member::Unnamed(index.into());
                     ident_names.push(LitStr::new(&index.to_string(), field.span()));
-                    match_arms.push(quote! { #index => self.#member.to_string(), });
+                    match_arms.push(quote! { #index => ::std::fmt::Display::fmt(&self.#member, f), });
                 }
             }
             Fields::Unit => {}
@@ -39,7 +39,7 @@ pub fn derive_template_params(input: TokenStream) -> TokenStream {
         impl #generics TemplateParams for #ident #generics {
             const FIELDS: &'static [&'static str] = &[#(#ident_names),*];
 
-            fn get_field(&self, index: usize) -> String {
+            fn fmt_field(&self, f: &mut ::std::fmt::Formatter, index: usize) -> ::std::fmt::Result {
                 match index {
                     #(#match_arms)*
                     _ => panic!("Index out of bounds"),

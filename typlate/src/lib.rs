@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::fmt;
+use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -16,8 +16,8 @@ pub trait TemplateParams {
     /// Array of field names available for use in templates.
     const FIELDS: &'static [&'static str];
 
-    /// Get the string representation of a field by its index.
-    fn get_field(&self, index: usize) -> String;
+    /// Format the field at the given index into the provided formatter.
+    fn fmt_field(&self, f: &mut fmt::Formatter, index: usize) -> fmt::Result;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -72,16 +72,21 @@ impl<T: TemplateParams> TemplateString<T> {
     /// assert_eq!(template.format(&data), "Point: (10, 20)");
     /// ```
     pub fn format(&self, params: &T) -> String {
-        let mut result = String::new();
+        format!("{}", ParameterizedTemplate(self, params))
+    }
+}
 
-        for element in &self.elements {
+struct ParameterizedTemplate<'i, T>(&'i TemplateString<T>, &'i T);
+
+impl<'i, T: TemplateParams> fmt::Display for ParameterizedTemplate<'i, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for element in &self.0.elements {
             match element {
-                TemplateElement::Text(text) => result.push_str(text),
-                TemplateElement::Var(index) => result.push_str(&params.get_field(*index)),
+                TemplateElement::Text(text) => f.write_str(text)?,
+                TemplateElement::Var(index) => self.1.fmt_field(f, *index)?,
             }
         }
-
-        result
+        Ok(())
     }
 }
 
@@ -194,13 +199,17 @@ impl<T: TemplateParams> fmt::Display for TemplateString<T> {
                 TemplateElement::Text(text) => {
                     for char in text.chars() {
                         match char {
-                            '{' => write!(f, "{{{{")?,
-                            '}' => write!(f, "}}}}")?,
-                            _ => write!(f, "{}", char)?,
+                            '{' => f.write_str("{{")?,
+                            '}' => f.write_str("}}")?,
+                            _ => f.write_char(char)?,
                         }
                     }
                 }
-                TemplateElement::Var(index) => write!(f, "{{{}}}", T::FIELDS[*index])?,
+                TemplateElement::Var(index) => {
+                    f.write_char('{')?;
+                    f.write_str(T::FIELDS[*index])?;
+                    f.write_char('}')?;
+                }
             }
         }
         Ok(())
