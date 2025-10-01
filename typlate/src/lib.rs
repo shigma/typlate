@@ -230,13 +230,11 @@ mod serde_impl {
 
     impl<'de, T: TemplateParams> Deserialize<'de> for TemplateString<T> {
         fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-            deserializer.deserialize_str(TemplateStringVisitor { phantom: PhantomData })
+            deserializer.deserialize_str(TemplateStringVisitor(PhantomData))
         }
     }
 
-    struct TemplateStringVisitor<T> {
-        phantom: PhantomData<T>,
-    }
+    struct TemplateStringVisitor<T>(PhantomData<T>);
 
     impl<'de, T: TemplateParams> de::Visitor<'de> for TemplateStringVisitor<T> {
         type Value = TemplateString<T>;

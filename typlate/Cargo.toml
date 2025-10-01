@@ -1,6 +1,6 @@
 [package]
 name = "typlate"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2024"
 license = "MIT"
 authors = ["Shigma <shigma10826@gmail.com>"]
@@ -15,9 +15,9 @@ full = ["derive", "serde"]
 serde = ["dep:serde"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"], optional = true }
-typlate_derive = { version = "0.2.2", path = "../typlate_derive", optional = true }
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+typlate_derive = { version = "0.3.0", path = "../typlate_derive", optional = true }
 
 [dev-dependencies]
-serde_json = "1.0"
+serde_json = "1.0.145"
 typlate = { path = ".", features = ["full"] }
